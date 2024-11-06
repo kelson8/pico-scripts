@@ -3,6 +3,7 @@
 # Extras
 secrets.py
 wifi_secrets.py
+python/test/*.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
