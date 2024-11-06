@@ -1,10 +1,12 @@
 import time
 import network
-import secrets
+import wifi_secrets
 import socket
 
 from picozero import LED
 from machine import Pin
+
+from wifi_connect import connect_network, disconnect_network
 
 # LED
 yellow_led = LED(18)
@@ -17,7 +19,7 @@ yellow_led = LED(18)
 
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
-#wlan.connect(secrets.ssid, secrets.password)
+#wlan.connect(wifi_secrets.ssid, wifi_secrets.password)
 
 # TODO Fix this to work with a html file and
 # activating a led using a button in html
@@ -28,33 +30,9 @@ wlan.active(True)
 #page.close()
 #
 
-def connect_network():
-    wlan.connect(secrets.ssid, secrets.password)
-    
-    # Wait for connection or failure
-    max_wait = 10
-    while max_wait > 0:
-        if wlan.status() < 0 or wlan.status() >= 3:
-            break
-        max_wait -= 1
-        print("Waiting for connection")
-        time.sleep(1)
-        
-    # Handle connection error
-    if wlan.status() != 3:
-        raise RuntimeError("Network connection failed")
-    else:
-        print(f"Connected to network {secrets.ssid}")
-        status = wlan.ifconfig()
-        #print(status)
-        print(f"IP Address: {status[0]}")
-        print(f"Subnet Mask: {status[1]}")
-        print(f"Gateway: {status[2]}")
-        print(f"DNS: {status[3]}")
-
 
 # First connect to the network.
-connect_network()
+connect_network(False)
 
 # Then set the address and socket
 status = wlan.ifconfig()
@@ -181,14 +159,14 @@ def webpage_loop():
             cl.close()
             print("Connection closed")
             
-            
-
-# Run the webpage loop
-webpage_loop()
 
 # Kill the socket when done
 #s.close()
 
-def disconnect_network():
-    wlan.disconnect()
-    
+if __name__ == '__main__':
+    try:
+        # Run the webpage loop
+        webpage_loop()
+    except KeyboardInterrupt:
+        print("Exiting")
+

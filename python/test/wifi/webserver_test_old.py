@@ -1,10 +1,12 @@
 import time
 import network
-import secrets
+import wifi_secrets
 import socket
 
 from picozero import LED
 from machine import Pin
+
+from wifi_connect import connect_network, disconnect_network
 
 # LED
 yellow_led = LED(18)
@@ -17,7 +19,7 @@ yellow_led = LED(18)
 
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
-#wlan.connect(secrets.ssid, secrets.password)
+#wlan.connect(wifi_secrets.ssid, wifi_secrets.password)
 
 #html = """<!DOCTYPE html>
 #<html>
@@ -40,33 +42,8 @@ wlan.active(True)
 #page.close()
 #
 
-def connect_network():
-    wlan.connect(secrets.ssid, secrets.password)
-    
-    # Wait for connection or failure
-    max_wait = 10
-    while max_wait > 0:
-        if wlan.status() < 0 or wlan.status() >= 3:
-            break
-        max_wait -= 1
-        print("Waiting for connection")
-        time.sleep(1)
-        
-    # Handle connection error
-    if wlan.status() != 3:
-        raise RuntimeError("Network connection failed")
-    else:
-        print(f"Connected to network {secrets.ssid}")
-        status = wlan.ifconfig()
-        #print(status)
-        print(f"IP Address: {status[0]}")
-        print(f"Subnet Mask: {status[1]}")
-        print(f"Gateway: {status[2]}")
-        print(f"DNS: {status[3]}")
-
-
 # First connect to the network.
-connect_network()
+connect_network(False)
 
 # Then set the address and socket
 status = wlan.ifconfig()
@@ -87,16 +64,12 @@ def get_html(html_name):
         
     return html
 
-# I finally got this working!
-# 10-30-2024 @ 12:11AM
-
-# This turns on/off the yellow led on pin 18 on the RPI Pico.
 def webpage_loop():
     while True:
         try:
             cl, addr = s.accept()
             
-            # Old
+            # New
             #cl_file = cl.makefile('rwb', 0)
             #while True:
             #    line = cl_file.readline()
@@ -106,7 +79,7 @@ def webpage_loop():
             
             print("Client connected from", addr)
             r = cl.recv(1024)
-            #print(r)
+            #print(request)
             
             r = str(r)
             led_on = r.find("?led=on")
@@ -130,21 +103,35 @@ def webpage_loop():
             #response = html
             response = get_html("index.html")
             
-            cl.send('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
+            #cl.send('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
+            # New, this fixes the CORS error in ReactJS! Wow I finally figured this out.
+            # https://lucstechblog.blogspot.com/2024/03/solving-cors-error-in-micropython.html
+            cl.send('HTTP/1.1 200 OK\n')
+            cl.send('Content-Type: text/html\n')
+            cl.send('Access-Control-Allow-Origin: *\n')
+            cl.send('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\n')
+            cl.send('Access-Control-Allow-Headers: Content-Type\n')
+            
+            cl.send('\n')
+            #
+            
             cl.send(response)
             cl.close()
             
         except OSError as e:
             #cl.close()
-            print("Connection closed")
-            
-# Run the webpage loop
-webpage_loop()
+            print("Connection closed")  
+
 
 # Kill the socket when done
 #s.close()
 
-def disconnect_network():
-    wlan.disconnect()
     
+
+if __name__ == '__main__':
+    try:
+        # Run the webpage loop
+        webpage_loop()
+    except KeyboardInterrupt:
+        print("Exiting")
 

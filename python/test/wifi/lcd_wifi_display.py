@@ -6,7 +6,9 @@ from pico_i2c_lcd import I2cLcd
 
 # Networking/Wifi
 import network
-import secrets
+#import secrets
+
+from wifi_connect import connect_network, disconnect_network
 
 import uping
 
@@ -25,35 +27,6 @@ scl = machine.Pin(1)
 i2c = I2C(0, sda=sda, scl=scl, freq=400000)
 lcd = I2cLcd(i2c, i2c_address, i2c_num_rows, i2c_num_cols)
 #
-
-# Connect to the wifi using the ssid and password stored in the secrets file
-def connect_network():
-    wlan.connect(secrets.ssid, secrets.password)
-    
-    # Wait for connection or failure
-    max_wait = 10
-    while max_wait > 0:
-        if wlan.status() < 0 or wlan.status() >= 3:
-            break
-        max_wait -= 1
-        print("Waiting for connection")
-        time.sleep(1)
-        
-    # Handle connection error
-    if wlan.status() != 3:
-        raise RuntimeError("Network connection failed")
-    else:
-        print(f"Connected to network {secrets.ssid}")
-        status = wlan.ifconfig()
-        #print(status)
-        #print(f"IP Address: {status[0]}")
-        #print(f"Subnet Mask: {status[1]}")
-        #print(f"Gateway: {status[2]}")
-        #print(f"DNS: {status[3]}")
-
-# Disconnect from the wifi
-def disconnect_network():
-    wlan.disconnect()
     
 # The text to write to, and the position
 # If the LCD is a 2x16, this can either be 0 or 1.
@@ -66,7 +39,7 @@ def display_ip_info():
     #lcd.clear()
     # Try to connect to the network, fail if no connection
     #try:
-        connect_network()
+        connect_network(False)
         status = wlan.ifconfig()
         # Oops my SSID is too long lol
         # TODO Setup scrolling text for ssid and ip
@@ -100,7 +73,7 @@ def display_ip_info():
 
 def ping_server(server):
     try:
-        connect_network()
+        connect_network(False)
         
         # TODO Figure out how to make this say connected if online, disconnected if offline.
         # Also I would like to display the website status on the rpi pico LCD
@@ -124,10 +97,9 @@ def ping_server(server):
         print(e)
 
 # IP of pi-hole, this should mostly always be online.
-ip_addr = "192.168.1.36"
+#ip_addr = "192.168.1.36"
+ip_addr = "10.2.2.2"
 ping_server(ip_addr)
 
-# Disabled
-#display_ip_info()
 
 
